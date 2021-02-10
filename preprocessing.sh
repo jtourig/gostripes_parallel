@@ -20,24 +20,20 @@ ASSEMBLY='ftp://ftp.ensembl.org/pub/release-102/fasta/saccharomyces_cerevisiae/d
 SEQDIR=seqs
 CORES=4
 
-## Export required variables.
+## Setup.
 
+cd $WORKDIR
 export CORES
 
 ## Preliminary fastq quality control.
-cd $WORKDIR
 
-if [ ! -d seqs_qc ]; then
-  mkdir seqs_qc
-fi
+if [ ! -d seqs_qc ]; then mkdir seq_qc; fi
 
 find seqs -name "*fastq" | xargs fastqc -o seqs_qc -t $CORES
 
 ## Keep only R1 reeds with N8TATAG3, and remove UMI, spacer, and poly-G.
 
-if [ ! -d processed ]; then
-  mkdir processed
-fi
+if [ ! -d processed ]; then mkdir processed; fi
 
 parallel -j1 -k -I,, 'seqkit grep -j$CORES -srP -p"^[ATGCN]{8}TATAG{3}" ",," | seqkit subseq -r 16:-1 > processed/"{/}"' ::: ${SEQDIR}/*_1*
 
@@ -47,25 +43,19 @@ parallel -j1 -k --link 'seqkit grep -j$CORES -f <(seqkit seq -ni "{1}") "{2}" > 
 
 ## Processed fastq quality control.
 
-if [ ! -d processed_qc ]; then
-  mkdir processed_qc
-fi
+if [ ! -d processed_qc ]; then mkdir processed_qc; fi
 
 find processed -name "*fastq" | xargs fastqc -o processed_qc -t $CORES
 
 ## Download genome.
 
-if [ ! -d genome ]; then
-  mkdir genome
-fi
+if [ ! -d genome ]; then mkdir genome; fi
 
 parallel -j$CORES 'curl {} | gunzip > genome/{/.}' ::: $GTF $ASSEMBLY
 
 ## Create STAR genome index.
 
-if [ ! -d genome/index ]; then
-  mkdir genome/index
-fi
+if [ ! -d genome/index ]; then mkdir genome/index; fi
 
 STAR \
   --runThreadN $CORES \
@@ -77,9 +67,7 @@ STAR \
 
 ## Align with STAR.
 
-if [ ! -d aligned ]; then
-  mkdir aligned
-fi
+if [ ! -d aligned ]; then mkdir aligned; fi
 
 parallel -k --link -j1 \
   'STAR \
@@ -92,9 +80,7 @@ parallel -k --link -j1 \
 
 ## Remove PCR duplicates and other poor reads.
 
-if [ ! -d cleaned ]; then
-  mkdir cleaned
-fi
+if [ ! -d cleaned ]; then mkdir cleaned; fi
 
 parallel -k -j1 \
   'samtools sort -n -@ $CORES "{}" | \
@@ -110,8 +96,7 @@ parallel -k -j1 \
 parallel -j$CORES -k 'samtools index "{}"' ::: cleaned/*bam
 
 ## Multiqc report.
-if [ ! -d multiqc ]; then
-  mkdir multiqc
-fi
+
+if [ ! -d multiqc ]; then mkdir multiqc; fi
 
 multiqc -o multiqc -d .
