@@ -18,6 +18,11 @@ WORKDIR='.'
 GTF='ftp://ftp.ensembl.org/pub/release-102/gtf/saccharomyces_cerevisiae/Saccharomyces_cerevisiae.R64-1-1.102.gtf.gz'
 ASSEMBLY='ftp://ftp.ensembl.org/pub/release-102/fasta/saccharomyces_cerevisiae/dna/Saccharomyces_cerevisiae.R64-1-1.dna_sm.toplevel.fa.gz'
 SEQDIR=seqs
+CORES=4
+
+## Export required variables.
+
+export CORES
 
 ## Preliminary fastq quality control.
 cd $WORKDIR
@@ -26,7 +31,7 @@ if [ ! -d seqs_qc ]; then
   mkdir seqs_qc
 fi
 
-find seqs -name "*fastq" | xargs fastqc -o seqs_qc -t 4
+find seqs -name "*fastq" | xargs fastqc -o seqs_qc -t $CORES
 
 ## Keep only R1 reeds with N8TATAG3, and remove UMI, spacer, and poly-G.
 
@@ -34,11 +39,11 @@ if [ ! -d processed ]; then
   mkdir processed
 fi
 
-parallel -j1 -k -I ,, 'seqkit grep -j4 -srP -p"^[ATGCN]{8}TATAG{3}" ",," | seqkit subseq -r 16:-1 > processed/"{/}"' ::: ${SEQDIR}/*_1*
+parallel -j1 -k -I,, 'seqkit grep -j$CORES -srP -p"^[ATGCN]{8}TATAG{3}" ",," | seqkit subseq -r 16:-1 > processed/"{/}"' ::: ${SEQDIR}/*_1*
 
 ## Properly pair R1 and R2 reads.
 
-parallel -j1 -k --link 'seqkit grep -j4 -f <(seqkit seq -ni "{1}") "{2}" > processed/"{2/}"' ::: processed/*_1* ::: seqs/*_2*
+parallel -j1 -k --link 'seqkit grep -j$CORES -f <(seqkit seq -ni "{1}") "{2}" > processed/"{2/}"' ::: processed/*_1* ::: seqs/*_2*
 
 ## Processed fastq quality control.
 
@@ -46,7 +51,7 @@ if [ ! -d processed_qc ]; then
   mkdir processed_qc
 fi
 
-find processed "*fastq" | xargs fastqc -o processed_qc -t 4
+find processed -name "*fastq" | xargs fastqc -o processed_qc -t $CORES
 
 ## Download genome.
 
@@ -54,7 +59,7 @@ if [ ! -d genome ]; then
   mkdir genome
 fi
 
-parallel -j2 'curl {} | gunzip > genome/{/.}' ::: $GTF $ASSEMBLY
+parallel -j$CORES 'curl {} | gunzip > genome/{/.}' ::: $GTF $ASSEMBLY
 
 ## Create STAR genome index.
 
@@ -63,7 +68,7 @@ if [ ! -d genome/index ]; then
 fi
 
 STAR \
-  --runThreadN 4 \
+  --runThreadN $CORES \
   --runMode genomeGenerate \
   --genomeDir genome/index \
   --genomeFastaFiles genome/$(basename $ASSEMBLY .gz) \
@@ -78,7 +83,7 @@ fi
 
 parallel -k --link -j1 \
   'STAR \
-    --runThreadN 4 \
+    --runThreadN $CORES \
     --genomeDir genome/index \
     --readFilesIn "{1}" "{2}" \
     --outFileNamePrefix aligned/"$(echo {1/.} | cut -d_ -f1)"_' \
@@ -92,13 +97,17 @@ if [ ! -d cleaned ]; then
 fi
 
 parallel -k -j1 \
-  'samtools sort -n "{}" | \
+  'samtools sort -n -@ $CORES "{}" | \
     samtools fixmate -m - - | \
-    samtools sort - | \
+    samtools sort -@ $CORES - | \
     samtools markdup - - | \
-    samtools view -F 3852 -f 3 -O BAM \
+    samtools view -F 3852 -f 3 -O BAM -@ $CORES \
     -o cleaned/$(echo "{/}" | cut -f1 -d_).bam' \
   ::: aligned/*Aligned*
+
+## Index the BAMs.
+
+parallel -j$CORES -k 'samtools index "{}"' ::: cleaned/*bam
 
 ## Multiqc report.
 if [ ! -d multiqc ]; then
