@@ -14,11 +14,16 @@
 
 ## Variables.
 
+CORES=4
+
 WORKDIR='.'
+SEQDIR=''
+
+R1_IDENTIFIER='_1'
+R2_IDENTIFIER='_2'
+
 GTF='ftp://ftp.ensembl.org/pub/release-102/gtf/saccharomyces_cerevisiae/Saccharomyces_cerevisiae.R64-1-1.102.gtf.gz'
 ASSEMBLY='ftp://ftp.ensembl.org/pub/release-102/fasta/saccharomyces_cerevisiae/dna/Saccharomyces_cerevisiae.R64-1-1.dna_sm.toplevel.fa.gz'
-SEQDIR=seqs
-CORES=4
 
 ## Setup.
 
@@ -35,11 +40,16 @@ find seqs -name "*fastq" | xargs fastqc -o seqs_qc -t $CORES
 
 if [ ! -d processed ]; then mkdir processed; fi
 
-parallel -j1 -k -I,, 'seqkit grep -j$CORES -srP -p"^[ATGCN]{8}TATAG{3}" ",," | seqkit subseq -r 16:-1 > processed/"{/}"' ::: ${SEQDIR}/*_1*
+parallel -j1 -k -I,, \
+  'seqkit grep -j$CORES -srP -p"^[ATGCN]{8}TATAG{3}" ",," | seqkit subseq -r 16:-1 > processed/"{/}"' \
+  ::: ${SEQDIR}/*${R1_IDENTIFIER}*
 
 ## Properly pair R1 and R2 reads.
 
-parallel -j1 -k --link 'seqkit grep -j$CORES -f <(seqkit seq -ni "{1}") "{2}" > processed/"{2/}"' ::: processed/*_1* ::: seqs/*_2*
+parallel -j1 -k --link \
+  'seqkit grep -j$CORES -f <(seqkit seq -ni "{1}") "{2}" > processed/"{2/}"' \
+  ::: processed/*${R1_IDENTIFIER}* \
+  ::: seqs/*${R2_IDENTIFIER}*
 
 ## Processed fastq quality control.
 
@@ -75,8 +85,8 @@ parallel -k --link -j1 \
     --genomeDir genome/index \
     --readFilesIn "{1}" "{2}" \
     --outFileNamePrefix aligned/"$(echo {1/.} | cut -d_ -f1)"_' \
-  ::: processed/*_1* \
-  ::: processed/*_2*
+  ::: processed/*${R1_IDENTIFIER}* \
+  ::: processed/*${R2_IDENTIFIER}*
 
 ## Remove PCR duplicates and other poor reads.
 
