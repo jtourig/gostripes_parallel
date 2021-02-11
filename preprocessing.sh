@@ -84,7 +84,7 @@ parallel -k --link -j1 \
     --runThreadN $CORES \
     --genomeDir genome/index \
     --readFilesIn "{1}" "{2}" \
-    --outFileNamePrefix aligned/"$(echo {1/.} | cut -d_ -f1)"_' \
+    --outFileNamePrefix aligned/{=1s/_.*//=}_' \
   ::: processed/*${R1_IDENTIFIER}* \
   ::: processed/*${R2_IDENTIFIER}*
 
@@ -98,7 +98,7 @@ parallel -k -j1 \
     samtools sort -@ $CORES - | \
     samtools markdup - - | \
     samtools view -F 3852 -f 3 -O BAM -@ $CORES \
-    -o cleaned/$(echo "{/}" | cut -f1 -d_).bam' \
+    -o cleaned/{=s/_.*//=}.bam' \
   ::: aligned/*Aligned*
 
 ## Index the BAMs.
