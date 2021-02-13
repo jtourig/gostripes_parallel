@@ -40,13 +40,13 @@ find seqs -name "*fastq" | xargs fastqc -o seqs_qc -t $CORES
 
 if [ ! -d processed ]; then mkdir processed; fi
 
-parallel -j1 -k -I,, \
+parallel -I,, \
   'seqkit grep -j$CORES -srP -p"^[ATGCN]{8}TATAG{3}" ",," | seqkit subseq -r 16:-1 > processed/"{/}"' \
   ::: ${SEQDIR}/*${R1_IDENTIFIER}*
 
 ## Properly pair R1 and R2 reads.
 
-parallel -j1 -k --link \
+parallel --link \
   'seqkit grep -j$CORES -f <(seqkit seq -ni "{1}") "{2}" > processed/"{2/}"' \
   ::: processed/*${R1_IDENTIFIER}* \
   ::: seqs/*${R2_IDENTIFIER}*
