@@ -83,7 +83,7 @@ STAR \
 
 if [ ! -d aligned ]; then mkdir aligned; fi
 
-parallel -k --link -j1 \
+parallel --link \
   'STAR \
     --runThreadN $CORES \
     --genomeDir genome/index \
@@ -96,7 +96,7 @@ parallel -k --link -j1 \
 
 if [ ! -d cleaned ]; then mkdir cleaned; fi
 
-parallel -k -j1 \
+parallel \
   'samtools sort -n -@ $CORES "{}" | \
     samtools fixmate -m - - | \
     samtools sort -@ $CORES - | \
@@ -107,7 +107,7 @@ parallel -k -j1 \
 
 ## Index the BAMs.
 
-parallel -j$CORES -k 'samtools index "{}"' ::: cleaned/*bam
+parallel -j$CORES 'samtools index "{}"' ::: cleaned/*bam
 
 ## Multiqc report.
 
