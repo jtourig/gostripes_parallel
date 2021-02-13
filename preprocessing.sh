@@ -49,7 +49,8 @@ parallel --link \
     --discard-untrimmed \
     -o processed/"{1/}" \
     -p processed/"{2/}" \
-    {1} {2}' \
+    {1} {2} \
+    1> processed/{=1s/.*\///;s/_.*//=}_log.txt' \
   ::: ${SEQDIR}/*${R1_IDENTIFIER}* \
   ::: ${SEQDIR}/*${R2_IDENTIFIER}*
     
