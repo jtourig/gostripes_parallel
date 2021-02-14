@@ -12,6 +12,8 @@
 ## module load sra-toolkit
 ## fasterq-dump -S -O seqs SRR10759419
 
+set -e
+
 ## Command line arguments.
 
 while [[ $# -gt 0 ]]; do
@@ -21,11 +23,11 @@ while [[ $# -gt 0 ]]; do
       SAMPLES="$2"
       shift 2
       ;;
-    -as|--assembly)
+    -a|--assembly)
       ASSEMBLY="$2"
       shift 2
       ;;
-    -an|--annotation)
+    -g|--annotation)
       GTF="$2"
       shift 2
       ;;
@@ -47,7 +49,7 @@ export CORES
 
 ## Preliminary fastq quality control.
 
-if [ ! -d seqs_qc ]; then mkdir seq_qc; fi
+if [ ! -d seqs_qc ]; then mkdir seqs_qc; fi
 
 cat  \
   <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
