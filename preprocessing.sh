@@ -39,6 +39,10 @@ while [[ $# -gt 0 ]]; do
       CORES="$2"
       shift 2
       ;;
+    -p|--paired)
+      PAIRED=true
+      shift
+      ;;
   esac
 done
 
@@ -51,29 +55,48 @@ export CORES
 
 if [ ! -d seqs_qc ]; then mkdir seqs_qc; fi
 
-cat  \
-  <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
-  <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) | \
-  xargs fastqc -o seqs_qc -t $CORES
+if [[ $PAIRED = true ]]; then
+  cat  \
+    <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
+    <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) | \
+    xargs fastqc -o seqs_qc -t $CORES
+else
+  csvtk cut -f fastq_1 $SAMPLES | csvtk del-header | \
+    xargs fastqc -o seqs_qc -t $CORES
+fi
 
 ## Keep only R1 reeds with N8TATAG3, and remove UMI, spacer, and poly-G.
 ## Tolerate 1 mismatched base.
 
 if [ ! -d processed ]; then mkdir processed; fi
 
-parallel --link \
-  -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
-  -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
-  -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-  'cutadapt \
-    -g ^NNNNNNNNTATAGGG \
-    -j $CORES \
-    -e 1 \
-    --discard-untrimmed \
-    -o processed/{1/} \
-    -p processed/{2/} \
-    {1} {2} \
-    1> processed/{3}_log.txt'
+if [[ $PAIRED = true ]]; then
+  parallel --link \
+    -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
+    -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
+    -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
+    'cutadapt \
+      -g ^NNNNNNNNTATAGGG \
+      -j $CORES \
+      -e 1 \
+      --discard-untrimmed \
+      -o processed/{1/} \
+      -p processed/{2/} \
+      {1} {2} \
+      1> processed/{3}_log.txt'
+else
+  parallel --link \
+    -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
+    -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
+    'cutadapt \
+      -g ^NNNNNNNNTATAGGG \
+      -j $CORES \
+      -e 1 \
+      --discard-untrimmed \
+      -o processed/{2}.fastq \
+      {1} \
+      1> processed/{2}_log.txt'
+fi
 
 ## Processed fastq quality control.
 
@@ -97,28 +120,47 @@ STAR \
 
 if [ ! -d aligned ]; then mkdir aligned; fi
 
-parallel --link \
-  -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
-  -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
-  -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-  'STAR \
-    --runThreadN $CORES \
-    --genomeDir index \
-    --readFilesIn {1} {2} \
-    --outFileNamePrefix aligned/{3}_'
+if [[ $PAIRED = true ]]; then
+  parallel --link \
+    -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
+    -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
+    -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
+    'STAR \
+      --runThreadN $CORES \
+      --genomeDir index \
+      --readFilesIn processed/{1/} processed/{2/} \
+      --outFileNamePrefix aligned/{3}_'
+else
+  parallel --link \
+    -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
+    -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
+    'STAR \
+      --runThreadN $CORES \
+      --genomeDir index \
+      --readFilesIn processed/{1/} \
+      --outFileNamePrefix aligned/{2}_'
+fi
 
 ## Remove PCR duplicates and other poor reads.
 
 if [ ! -d cleaned ]; then mkdir cleaned; fi
 
-parallel \
-  -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-  'samtools sort -n -@ $CORES aligned/{}_Aligned.out.sam | \
-    samtools fixmate -m - - | \
-    samtools sort -@ $CORES - | \
-    samtools markdup - - | \
-    samtools view -F 3852 -f 3 -O BAM -@ $CORES \
-    -o cleaned/{}.bam'
+if [[ $PAIRED = true ]]; then
+  parallel \
+    -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
+    'samtools sort -n -@ $CORES aligned/{}_Aligned.out.sam | \
+      samtools fixmate -m - - | \
+      samtools sort -@ $CORES - | \
+      samtools markdup - - | \
+      samtools view -F 3852 -f 3 -O BAM -@ $CORES \
+      -o cleaned/{}.bam'
+else
+  parallel \
+    -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
+    'samtools sort -@ $CORES aligned/{}_Aligned.out.sam | \
+      samtools view -F 2820 -O BAM -@ $CORES \
+      -o cleaned/{}.bam'
+fi
 
 ## Index the BAMs.
 
