@@ -2,7 +2,7 @@
 
 ## -- Conda Environment
 ## conda create -n gostripes -c conda-forge -c bioconda \
-## fastqc multiqc parallel seqkit star samtools cutadapt csvtk
+## fastqc multiqc parallel seqkit star samtools cutadapt csvtk umitools
 
 ## -- GNU Parallel Note
 ## System PERL interefered with GNU parallel.
@@ -45,6 +45,9 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [ -z ${WORKDIR+x} ]; then WORKDIR="."; fi
+if [ -z ${CORES+x} ]; then CORES=1; fi
 
 ## Setup.
 

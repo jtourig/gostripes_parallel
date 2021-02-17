@@ -23,7 +23,7 @@ After miniconda3 is installed, create a GOSTRIPEs environment.
 
 ```
 conda create -n GOSTRIPEs -y -c conda-forge -c bioconda \
-fastqc multiqc csvtk star samtools cutadapt parallel
+fastqc multiqc csvtk star samtools cutadapt parallel umitools
 ```
 
 The GOSTRIPEs software environment can now be activated for analysis.
@@ -56,14 +56,14 @@ corresponding to the sample name, R1 FASTQ file, and R2 FASTQ file.
 ```
 cat \
   <(echo name,fastq_1,fastq_2) \
-  <(echo S288C,seqs/SRR10759419_1.fastq,seqs/SRR10759419_1.fastq) \
+  <(echo S288C,seqs/SRR10759419_1.fastq,seqs/SRR10759419_2.fastq) \
   > sample_sheet.csv
 ```
 
 Finally, an Sc FASTA genome assembly and GTF genome annotation file will be downloaded from ENSEMBL.
 
 ```
-if [ ! -d genome]; then mkdir genome; fi
+if [ ! -d genome ]; then mkdir genome; fi
 
 curl ftp://ftp.ensembl.org/pub/release-102/gtf/saccharomyces_cerevisiae/Saccharomyces_cerevisiae.R64-1-1.102.gtf.gz | \
   gunzip > genome/Saccharomyces_cerevisiae.R64-1-1.102.gtf
@@ -79,6 +79,6 @@ bash preprocessing.sh \
   -s sample_sheet.csv \
   -a genome/Saccharomyces_cerevisiae.R64-1-1.dna_sm.toplevel.fa \
   -g genome/Saccharomyces_cerevisiae.R64-1-1.102.gtf \
-  -o . \
-  -t 4
+  -t 4 \
+  --paired
 ```
