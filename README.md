@@ -23,7 +23,7 @@ After miniconda3 is installed, create a GOSTRIPEs environment.
 
 ```
 conda create -n GOSTRIPEs -y -c conda-forge -c bioconda \
-fastqc multiqc csvtk star samtools cutadapt parallel umitools
+fastqc multiqc csvtk star samtools cutadapt parallel
 ```
 
 The GOSTRIPEs software environment can now be activated for analysis.

@@ -2,7 +2,7 @@
 
 ## -- Conda Environment
 ## conda create -n gostripes -c conda-forge -c bioconda \
-## fastqc multiqc parallel seqkit star samtools cutadapt csvtk umitools
+## fastqc multiqc parallel seqkit star samtools cutadapt csvtk
 
 ## -- GNU Parallel Note
 ## System PERL interefered with GNU parallel.
@@ -46,8 +46,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [ -z ${WORKDIR+x} ]; then WORKDIR="."; fi
-if [ -z ${CORES+x} ]; then CORES=1; fi
+if [[ -z ${WORKDIR+x} ]]; then WORKDIR="."; fi
+if [[ -z ${CORES+x} ]]; then CORES=1; fi
 
 ## Setup.
 
@@ -56,7 +56,7 @@ export CORES
 
 ## Preliminary fastq quality control.
 
-if [ ! -d seqs_qc ]; then mkdir seqs_qc; fi
+if [[ ! -d seqs_qc ]]; then mkdir seqs_qc; fi
 
 if [[ $PAIRED = true ]]; then
   cat  \
@@ -71,7 +71,7 @@ fi
 ## Keep only R1 reeds with N8TATAG3, and remove UMI, spacer, and poly-G.
 ## Tolerate 1 mismatched base.
 
-if [ ! -d processed ]; then mkdir processed; fi
+if [[ ! -d fastqs/trimmed ]]; then mkdir -p fastqs/trimmed; fi
 
 if [[ $PAIRED = true ]]; then
   parallel --link \
@@ -83,10 +83,10 @@ if [[ $PAIRED = true ]]; then
       -j $CORES \
       -e 1 \
       --discard-untrimmed \
-      -o processed/{1/} \
-      -p processed/{2/} \
+      -o fastqs/trimmed/{1/} \
+      -p fastqs/trimmed/{2/} \
       {1} {2} \
-      1> processed/{3}_log.txt'
+      1> fastqs/trimmed/{3}_log.txt'
 else
   parallel --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
@@ -96,32 +96,32 @@ else
       -j $CORES \
       -e 1 \
       --discard-untrimmed \
-      -o processed/{2}.fastq \
+      -o fastqs/trimmed/{2}.fastq \
       {1} \
-      1> processed/{2}_log.txt'
+      1> fastqs/trimmed/{2}_log.txt'
 fi
 
 ## Processed fastq quality control.
 
-if [ ! -d processed_qc ]; then mkdir processed_qc; fi
+if [[ ! -d fastqs/trimmed_qc ]]; then mkdir fastqs/trimmed_qc; fi
 
-find processed -name "*fastq" | xargs fastqc -o processed_qc -t $CORES
+find processed -name "*fastq" | xargs fastqc -o fastqs/trimmed_qc -t $CORES
 
 ## Create STAR genome index.
 
-if [ ! -d index ]; then mkdir index; fi
+if [[ ! -d index ]]; then mkdir index; fi
 
 STAR \
   --runThreadN $CORES \
   --runMode genomeGenerate \
   --genomeDir index \
-  --genomeFastaFiles genome/$(basename $ASSEMBLY) \
-  --sjdbGTFfile genome/$(basename $GTF) \
+  --genomeFastaFiles $ASSEMBLY \
+  --sjdbGTFfile $GTF \
   --genomeSAindexNbases 10
 
 ## Align with STAR.
 
-if [ ! -d aligned ]; then mkdir aligned; fi
+if [[ ! -d bams/aligned ]]; then mkdir -p bams/aligned; fi
 
 if [[ $PAIRED = true ]]; then
   parallel --link \
@@ -131,8 +131,8 @@ if [[ $PAIRED = true ]]; then
     'STAR \
       --runThreadN $CORES \
       --genomeDir index \
-      --readFilesIn processed/{1/} processed/{2/} \
-      --outFileNamePrefix aligned/{3}_'
+      --readFilesIn fastqs/trimmed/{1/} fastqs/trimmed/{2/} \
+      --outFileNamePrefix bams/aligned/{3}_'
 else
   parallel --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
@@ -140,37 +140,37 @@ else
     'STAR \
       --runThreadN $CORES \
       --genomeDir index \
-      --readFilesIn processed/{1/} \
-      --outFileNamePrefix aligned/{2}_'
+      --readFilesIn fastqs/trimmed/{1/} \
+      --outFileNamePrefix bams/aligned/{2}_'
 fi
 
 ## Remove PCR duplicates and other poor reads.
 
-if [ ! -d cleaned ]; then mkdir cleaned; fi
+if [[ ! -d bams/cleaned ]]; then mkdir bams/cleaned; fi
 
 if [[ $PAIRED = true ]]; then
   parallel \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-    'samtools sort -n -@ $CORES aligned/{}_Aligned.out.sam | \
+    'samtools sort -n -@ $CORES bams/aligned/{}_Aligned.out.sam | \
       samtools fixmate -m - - | \
       samtools sort -@ $CORES - | \
       samtools markdup - - | \
       samtools view -F 3852 -f 3 -O BAM -@ $CORES \
-      -o cleaned/{}.bam'
+      -o bams/cleaned/{}.bam'
 else
   parallel \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-    'samtools sort -@ $CORES aligned/{}_Aligned.out.sam | \
+    'samtools sort -@ $CORES bams/aligned/{}_Aligned.out.sam | \
       samtools view -F 2820 -O BAM -@ $CORES \
-      -o cleaned/{}.bam'
+      -o bams/cleaned/{}.bam'
 fi
 
 ## Index the BAMs.
 
-parallel -j$CORES 'samtools index "{}"' ::: cleaned/*bam
+parallel -j$CORES 'samtools index "{}"' ::: bams/cleaned/*bam
 
 ## Multiqc report.
 
-if [ ! -d multiqc ]; then mkdir multiqc; fi
+if [[ ! -d multiqc ]]; then mkdir multiqc; fi
 
 multiqc -o multiqc -d .
