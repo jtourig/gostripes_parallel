@@ -2,7 +2,7 @@
 
 ## Download reads.
 
-if [ ! -d seqs ]; then mkdir seqs; fi
+if [[ ! -d seqs ]]; then mkdir seqs; fi
 
 curl ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR107/019/SRR10759419/SRR10759419_1.fastq.gz | \
   gunzip > seqs/SRR10759419_1.fastq
@@ -19,7 +19,7 @@ cat \
 
 ## Download genome FASTA and GTF.
 
-if [ ! -d genome ]; then mkdir genome; fi
+if [[ ! -d genome ]]; then mkdir genome; fi
 
 curl ftp://ftp.ensembl.org/pub/release-102/gtf/saccharomyces_cerevisiae/Saccharomyces_cerevisiae.R64-1-1.102.gtf.gz | \
   gunzip > genome/Saccharomyces_cerevisiae.R64-1-1.102.gtf

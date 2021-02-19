@@ -96,7 +96,7 @@ else
       -j $CORES \
       -e 1 \
       --discard-untrimmed \
-      -o fastqs/trimmed/{2}.fastq \
+      -o fastqs/trimmed/{1/} \
       {1} \
       1> fastqs/trimmed/{2}_log.txt'
 fi
