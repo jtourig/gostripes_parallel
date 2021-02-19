@@ -105,7 +105,7 @@ fi
 
 if [[ ! -d fastqs/trimmed_qc ]]; then mkdir fastqs/trimmed_qc; fi
 
-find processed -name "*fastq" | xargs fastqc -o fastqs/trimmed_qc -t $CORES
+find fastqs/trimmed -name "*fastq" | xargs fastqc -o fastqs/trimmed_qc -t $CORES
 
 ## Create STAR genome index.
 
