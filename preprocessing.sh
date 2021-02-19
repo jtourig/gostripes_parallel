@@ -2,7 +2,7 @@
 
 ## -- Conda Environment
 ## conda create -n gostripes -c conda-forge -c bioconda \
-## fastqc multiqc parallel seqkit star samtools cutadapt csvtk
+## fastqc multiqc parallel seqtk star samtools cutadapt csvtk
 
 ## -- GNU Parallel Note
 ## System PERL interefered with GNU parallel.
@@ -51,15 +51,18 @@ if [[ -z ${CORES+x} ]]; then CORES=1; fi
 
 ## Setup.
 
-find bin -name "*sh" | xargs -n1 source
+export CORES
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+find ${SCRIPT_DIR}/bin -name "*sh" | xargs -n1 source
 
 cd $WORKDIR
-export CORES
 
 ## Preliminary fastq quality control.
 
 if [[ ! -d seqs_qc ]]; then mkdir seqs_qc; fi
 
+printf "%-35s%s%s\n" "[$(date)]..." "Running FastQC on input FASTQs"
 if [[ $PAIRED = true ]]; then
   cat  \
     <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
@@ -69,50 +72,41 @@ else
   csvtk cut -f fastq_1 $SAMPLES | csvtk del-header | \
     xargs fastqc -o seqs_qc -t $CORES
 fi
+printf "%-35s%s%s\n" "[$(date)]..." "Finished running FastQC"
 
 ## Keep only R1 reeds with N8TATAG3, and remove UMI, spacer, and poly-G.
 ## Tolerate 1 mismatched base.
 
 if [[ ! -d fastqs/trimmed ]]; then mkdir -p fastqs/trimmed; fi
 
+printf "%-35s%s%s\n" "[$(date)]..." "Filtering and trimming ^N{8}TATAGGG from FASTQs with Cutadapt"
 if [[ $PAIRED = true ]]; then
   parallel --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-    'cutadapt \
-      -g ^NNNNNNNNTATAGGG \
-      -j $CORES \
-      -e 1 \
-      --discard-untrimmed \
-      -o fastqs/trimmed/{1/} \
-      -p fastqs/trimmed/{2/} \
-      {1} {2} \
-      1> fastqs/trimmed/{3}_log.txt'
+    "CUTADAPT_PAIRED"
 else
   parallel --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-    'cutadapt \
-      -g ^NNNNNNNNTATAGGG \
-      -j $CORES \
-      -e 1 \
-      --discard-untrimmed \
-      -o fastqs/trimmed/{1/} \
-      {1} \
-      1> fastqs/trimmed/{2}_log.txt'
+    "CUTADAPT_SINGLE"
 fi
+printf "%-35s%s%s\n" "[$(date)]..." "Finished filtering and trimming FASTQs"
 
 ## Processed fastq quality control.
 
 if [[ ! -d fastqs/trimmed_qc ]]; then mkdir fastqs/trimmed_qc; fi
 
+printf "%-35s%s%s\n" "[$(date)]..." "Running FastQC on filtered and trimmed FASTQs"
 find fastqs/trimmed -name "*fastq" | xargs fastqc -o fastqs/trimmed_qc -t $CORES
+printf "%-35s%s%s\n" "[$(date)]..." "Finished running FastQC on filtered and trimmed FASTQs"
 
 ## Create STAR genome index.
 
 if [[ ! -d index ]]; then mkdir index; fi
 
+printf "%-35s%s%s\n" "[$(date)]..." "Generating the STAR genome index"
 STAR \
   --runThreadN $CORES \
   --runMode genomeGenerate \
@@ -120,56 +114,50 @@ STAR \
   --genomeFastaFiles $ASSEMBLY \
   --sjdbGTFfile $GTF \
   --genomeSAindexNbases 10
+printf "%-35s%s%s\n" "[$(date)]..." "Finished generating the STAR genome index"
 
 ## Align with STAR.
 
 if [[ ! -d bams/aligned ]]; then mkdir -p bams/aligned; fi
 
+printf "%-35s%s%s\n" "[$(date)]..." "Aligning reads to genome using STAR"
 if [[ $PAIRED = true ]]; then
   parallel --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-    'STAR \
-      --runThreadN $CORES \
-      --genomeDir index \
-      --readFilesIn fastqs/trimmed/{1/} fastqs/trimmed/{2/} \
-      --outFileNamePrefix bams/aligned/{3}_'
+    "STAR_PAIRED"
 else
   parallel --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-    'STAR \
-      --runThreadN $CORES \
-      --genomeDir index \
-      --readFilesIn fastqs/trimmed/{1/} \
-      --outFileNamePrefix bams/aligned/{2}_'
+    "STAR_SINGLE"
 fi
+printf "%-35s%s%s\n" "[$(date)]..." "Finished aligning reads"
 
 ## Remove PCR duplicates and other poor reads.
 
 if [[ ! -d bams/cleaned ]]; then mkdir bams/cleaned; fi
 
+printf "%-35s%s%s\n" "[$(date)]..." "Removing poor alignments and for paired-end data, PCR duplicates"
 if [[ $PAIRED = true ]]; then
   parallel \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-    'samtools sort -n -@ $CORES bams/aligned/{}_Aligned.out.sam | \
-      samtools fixmate -m - - | \
-      samtools sort -@ $CORES - | \
-      samtools markdup - - | \
-      samtools view -F 3852 -f 3 -O BAM -@ $CORES \
-      -o bams/cleaned/{}.bam'
+    "SAMTOOLS_PAIRED"
 else
   parallel \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
-    'samtools sort -@ $CORES bams/aligned/{}_Aligned.out.sam | \
-      samtools view -F 2820 -O BAM -@ $CORES \
-      -o bams/cleaned/{}.bam'
+    "SAMTOOLS_SINGLE"
 fi
+printf "%-35s%s%s\n" "[$(date)]..." "Finished removing poor alignments, and for paired-end data, PCR duplicates"
 
 ## Index the BAMs.
 
-parallel -j$CORES 'samtools index "{}"' ::: bams/cleaned/*bam
+printf "%-35s%s%s\n" "[$(date)]..." "Indexing BAMs"
+parallel -j$CORES \
+  printf "%-5s%s" 
+  samtools index {} ::: bams/cleaned/*bam
+printf "%-35s%s%s\n" "[$(date)]..." "Finished indexing BAMs"
 
 ## Multiqc report.
 
