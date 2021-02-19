@@ -161,12 +161,15 @@ printf "%-35s%s%s\n" "[$(date)]..." "Finished removing poor alignments, and for 
 
 printf "%-35s%s%s\n" "[$(date)]..." "Indexing BAMs"
 parallel -j$CORES \
-  printf "%-5s%s" 
-  samtools index {} ::: bams/cleaned/*bam
+  printf "%-5s%s"';' \ 
+  samtools index {} \
+  ::: bams/cleaned/*bam
 printf "%-35s%s%s\n" "[$(date)]..." "Finished indexing BAMs"
 
 ## Multiqc report.
 
 if [[ ! -d multiqc ]]; then mkdir multiqc; fi
 
+printf "%-35s%s%s\n" "[$(date)]..." "Generating MultiQC report"
 multiqc -o multiqc -d .
+printf "%-35s%s%s\n" "[$(date)]..." "Finished making MultiQC report"
