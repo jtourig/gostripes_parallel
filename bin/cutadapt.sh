@@ -25,12 +25,17 @@ CUTADAPT_PAIRED() {
 
 CUTADAPT_SINGLE() {
   printf "%s-5%s" "..." "Filtering and trimming ${1}"
+  umi_tools extract \
+    -p "NNNNNNNN" \
+    -I $1 \
+    -L fastqs/trimmed/${2}_umi_log.txt | \
   cutadapt \
-    -g "^N{8}TATAG{3}" \
+    -g "^TATAG{3}" \
     -j $CORES \
+    -O 6 \
     -e 1 \
     --discard-untrimmed \
-    ${1} | \
+    - | \
   cutadapt \
     -g "^CCTACACGACGCTCTTCCGATCTN{8}TATAG{3}" \
     -j $CORES \
