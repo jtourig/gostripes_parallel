@@ -9,7 +9,6 @@ SAMTOOLS_PAIRED() {
     samtools view -F 3852 -f 3 -O BAM -@ $CORES \
     -o bams/cleaned/${1}.bam
 }
-export SAMTOOLS_PAIRED
 
 SAMTOOLS_SINGLE() {
   printf "%-5s%s" "..." "Processing ${1}"
@@ -17,4 +16,3 @@ SAMTOOLS_SINGLE() {
     samtools view -F 2820 -O BAM -@ $CORES \
     -o bams/cleaned/${1}.bam
 }
-export SAMTOOLS_SINGLE

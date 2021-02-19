@@ -16,12 +16,12 @@ CUTADAPT_PAIRED() {
     -j $CORES \
     -O 21 \
     -e 2 \
+    -m 15 \
     --interleaved \
     -o fastqs/trimmed/$(basename ${1}) \
     -p fastqs/trimmed/$(basename ${2}) \
     -
 }
-export CUTADAPT_PAIRED
 
 CUTADAPT_SINGLE() {
   printf "%s-5%s" "..." "Filtering and trimming ${1}"
@@ -36,7 +36,7 @@ CUTADAPT_SINGLE() {
     -j $CORES \
     -O 21 \
     -e 2 \
+    -m 15 \
     -o fastqs/trimmed/$(basename ${1}) \
     -
 }
-export CUTADAPT_SINGLE

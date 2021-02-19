@@ -8,7 +8,6 @@ STAR_PAIRED() {
     --readFilesIn fastqs/trimmed/$(basename ${1}) fastqs/trimmed/$(basename ${2}) \
     --outFileNamePrefix bams/aligned/${3}_
 }
-export STAR_PAIRED
 
 STAR_SINGLE() {
   printf "%-5s%s" "..." "Aligning ${1}"
@@ -18,4 +17,3 @@ STAR_SINGLE() {
     --readFilesIn fastqs/trimmed/$(basename ${1}) \
     --outFileNamePrefix bams/aligned/${2}_
 }
-export STAR_SINGLE

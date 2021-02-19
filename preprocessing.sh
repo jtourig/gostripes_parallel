@@ -54,7 +54,7 @@ if [[ -z ${CORES+x} ]]; then CORES=1; fi
 export CORES
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-find ${SCRIPT_DIR}/bin -name "*sh" | xargs -n1 source
+for func in ${SCRIPT_DIR}/bin/*sh; do source $func; done
 
 cd $WORKDIR
 
@@ -81,12 +81,14 @@ if [[ ! -d fastqs/trimmed ]]; then mkdir -p fastqs/trimmed; fi
 
 printf "%-35s%s%s\n" "[$(date)]..." "Filtering and trimming ^N{8}TATAGGG from FASTQs with Cutadapt"
 if [[ $PAIRED = true ]]; then
+  export -f CUTADAPT_PAIRED
   parallel --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
     "CUTADAPT_PAIRED"
 else
+  export -f CUTADAPT_SINGLE
   parallel --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
@@ -122,12 +124,14 @@ if [[ ! -d bams/aligned ]]; then mkdir -p bams/aligned; fi
 
 printf "%-35s%s%s\n" "[$(date)]..." "Aligning reads to genome using STAR"
 if [[ $PAIRED = true ]]; then
+  export -f STAR_PAIRED
   parallel --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
     "STAR_PAIRED"
 else
+  export -f STAR_SINGLE
   parallel --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
@@ -141,10 +145,12 @@ if [[ ! -d bams/cleaned ]]; then mkdir bams/cleaned; fi
 
 printf "%-35s%s%s\n" "[$(date)]..." "Removing poor alignments and for paired-end data, PCR duplicates"
 if [[ $PAIRED = true ]]; then
+  export -f SAMTOOLS_PAIRED
   parallel \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
     "SAMTOOLS_PAIRED"
 else
+  export -f SAMTOOLS_SINGLE
   parallel \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
     "SAMTOOLS_SINGLE"
