@@ -51,6 +51,8 @@ if [[ -z ${CORES+x} ]]; then CORES=1; fi
 
 ## Setup.
 
+find bin -name "*sh" | xargs -n1 source
+
 cd $WORKDIR
 export CORES
 
