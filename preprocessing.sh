@@ -160,10 +160,7 @@ printf "%-35s%s%s\n" "[$(date)]..." "Finished removing poor alignments, and for 
 ## Index the BAMs.
 
 printf "%-35s%s%s\n" "[$(date)]..." "Indexing BAMs"
-parallel -j$CORES \
-  printf "%-5s%s"';' \ 
-  samtools index {} \
-  ::: bams/cleaned/*bam
+parallel -j$CORES samtools index {} ::: bams/cleaned/*bam
 printf "%-35s%s%s\n" "[$(date)]..." "Finished indexing BAMs"
 
 ## Multiqc report.

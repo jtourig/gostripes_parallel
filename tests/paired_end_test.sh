@@ -68,7 +68,7 @@ if [[ ! -f seqs_qc/SRR10759419_1_fastqc.html || ! -f seqs_qc/SRR10759419_2_fastq
   >&2 echo "ERROR: FastQC files missing."
 fi
 
-if [[ ! -f fastqs/trimmed/SRR10759419_1.fastq || ! -f fastqs/trimmed/SRR10759419_2.fastq || ! -f fastqs/trimmed/S288C_log.txt ]]; then
+if [[ ! -f fastqs/trimmed/SRR10759419_1.fastq || ! -f fastqs/trimmed/SRR10759419_2.fastq || ]]; then
   >&2 echo "ERROR: Trimmed FASTQ files and/or trimming log missing."
 fi
 
@@ -94,4 +94,4 @@ fi
 
 ## Remove test files.
 
-rm -r genome index fastqs seqs multiqc bams seqs_qc sample_sheet.csv
+#rm -r genome index fastqs seqs multiqc bams seqs_qc sample_sheet.csv
