@@ -47,16 +47,22 @@ while [[ $# -gt 0 ]]; do
       GNB="$2"
       shift 2
       ;;
+    -m|--max-mem)
+      MAXMEM="$2"
+      shift 2
+      ;;
   esac
 done
 
-if [[ -z ${WORKDIR+x} ]]; then WORKDIR="."; fi
+if [[ -z ${WORKDIR+x} ]]; then WORKDIR=$(pwd); fi
 if [[ -z ${CORES+x} ]]; then CORES=1; fi
 if [[ -z ${GNB+x} ]]; then GNB=14; fi
+if [[ -z ${MAXMEM+x} ]]; then MAXMEM="768M"; fi
 
 ## Setup.
 
 export CORES
+export MAXMEM
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 for func in ${SCRIPT_DIR}/bin/*sh; do source $func; done

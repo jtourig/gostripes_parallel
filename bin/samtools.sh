@@ -2,9 +2,9 @@
 
 SAMTOOLS_PAIRED() {
   printf "%-5s%s" "..." "Processing ${1}"
-  samtools sort -n -@ $CORES bams/aligned/${1}_Aligned.out.sam | \
+  samtools sort -n -@ $CORES -m $MAXMEM bams/aligned/${1}_Aligned.out.sam | \
     samtools fixmate -m - - | \
-    samtools sort -@ $CORES - | \
+    samtools sort -@ $CORES -m $MAXMEM - | \
     samtools markdup - - | \
     samtools view -F 3852 -f 3 -O BAM -@ $CORES \
     -o bams/cleaned/${1}.bam
@@ -12,7 +12,7 @@ SAMTOOLS_PAIRED() {
 
 SAMTOOLS_SINGLE() {
   printf "%-5s%s" "..." "Processing ${1}"
-  samtools sort -@ $CORES bams/aligned/${1}_Aligned.out.sam | \
+  samtools sort -@ $CORES -m $MAXMEM bams/aligned/${1}_Aligned.out.sam | \
     samtools view -F 2820 -O BAM -@ $CORES | \
     umi_tools dedup \
       --output-stats=bams/cleaned/${1}_dedup_stats.txt \
