@@ -24,10 +24,14 @@ CUTADAPT_PAIRED() {
 }
 
 CUTADAPT_SINGLE() {
+
+  if [[ ! -d tmpdir ]]; then mkdir tmpdir; fi
+
   printf "%s-5%s" "..." "Filtering and trimming ${1}"
   umi_tools extract \
     -p "NNNNNNNN" \
     -I $1 \
+    --temp-dir=tmpdir \
     -L fastqs/trimmed/${2}_umi_log.txt | \
   cutadapt \
     -g "^TATAG{3}" \
