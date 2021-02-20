@@ -80,5 +80,6 @@ bash gostripes.sh \
   -a genome/Saccharomyces_cerevisiae.R64-1-1.dna_sm.toplevel.fa \
   -g genome/Saccharomyces_cerevisiae.R64-1-1.102.gtf \
   -t 4 \
-  --paired
+  --paired \
+  --genomeSAindexNbases 10
 ```

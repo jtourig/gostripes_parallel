@@ -60,6 +60,7 @@ bash ../gostripes.sh \
   -g genome/Saccharomyces_cerevisiae.R64-1-1.102.gtf \
   -t 8 \
   -o $(pwd) \
+  --genomeSAindexNbases 10 \
   --paired
 
 ## Check outputs exists.

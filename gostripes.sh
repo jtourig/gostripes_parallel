@@ -39,15 +39,20 @@ while [[ $# -gt 0 ]]; do
       CORES="$2"
       shift 2
       ;;
-    -p|--paired)
+    --paired)
       PAIRED=true
       shift
+      ;;
+    --genomeSAindexNbases)
+      GNB="$2"
+      shift 2
       ;;
   esac
 done
 
 if [[ -z ${WORKDIR+x} ]]; then WORKDIR="."; fi
 if [[ -z ${CORES+x} ]]; then CORES=1; fi
+if [[ -z ${GNB+x} ]]; then GNB=14; fi
 
 ## Setup.
 
@@ -115,7 +120,7 @@ STAR \
   --genomeDir index \
   --genomeFastaFiles $ASSEMBLY \
   --sjdbGTFfile $GTF \
-  --genomeSAindexNbases 10
+  --genomeSAindexNbases $GNB
 printf "%-35s%s%s\n" "[$(date)]..." "Finished generating the STAR genome index"
 
 ## Align with STAR.
