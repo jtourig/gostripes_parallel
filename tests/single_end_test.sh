@@ -46,7 +46,7 @@ fi
 
 ## Run GOSTRIPEs.
 
-bash ../preprocessing.sh \
+bash ../gostripes.sh \
   -s sample_sheet.csv \
   -a genome/Saccharomyces_cerevisiae.R64-1-1.dna_sm.toplevel.fa \
   -g genome/Saccharomyces_cerevisiae.R64-1-1.102.gtf \

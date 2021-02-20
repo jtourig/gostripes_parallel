@@ -75,7 +75,7 @@ curl ftp://ftp.ensembl.org/pub/release-102/fasta/saccharomyces_cerevisiae/dna/Sa
 Now that we have all of the required files, we can run the workflow.
 
 ```
-bash preprocessing.sh \
+bash gostripes.sh \
   -s sample_sheet.csv \
   -a genome/Saccharomyces_cerevisiae.R64-1-1.dna_sm.toplevel.fa \
   -g genome/Saccharomyces_cerevisiae.R64-1-1.102.gtf \
