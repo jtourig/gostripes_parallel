@@ -136,7 +136,7 @@ if [[ ! -d bams/aligned ]]; then mkdir -p bams/aligned; fi
 printf "%-35s%s%s\n" "[$(date)]..." "Aligning reads to genome using STAR"
 if [[ $PAIRED = true ]]; then
   export -f STAR_PAIRED
-  parallel -j 1 -j 1 --link \
+  parallel -j 1 --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
