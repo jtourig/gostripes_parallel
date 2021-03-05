@@ -93,14 +93,14 @@ if [[ ! -d fastqs/trimmed ]]; then mkdir -p fastqs/trimmed; fi
 printf "%-35s%s%s\n" "[$(date)]..." "Filtering and trimming ^N{8}TATAGGG from FASTQs with Cutadapt"
 if [[ $PAIRED = true ]]; then
   export -f CUTADAPT_PAIRED
-  parallel --link \
+  parallel -j 1 --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
     "CUTADAPT_PAIRED"
 else
   export -f CUTADAPT_SINGLE
-  parallel --link \
+  parallel -j 1 --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
     "CUTADAPT_SINGLE"
@@ -136,14 +136,14 @@ if [[ ! -d bams/aligned ]]; then mkdir -p bams/aligned; fi
 printf "%-35s%s%s\n" "[$(date)]..." "Aligning reads to genome using STAR"
 if [[ $PAIRED = true ]]; then
   export -f STAR_PAIRED
-  parallel --link \
+  parallel -j 1 -j 1 --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f fastq_2 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
     "STAR_PAIRED"
 else
   export -f STAR_SINGLE
-  parallel --link \
+  parallel -j 1 --link \
     -a <(csvtk cut -f fastq_1 $SAMPLES | csvtk del-header) \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
     "STAR_SINGLE"
@@ -162,7 +162,7 @@ if [[ $PAIRED = true ]]; then
     "SAMTOOLS_PAIRED"
 else
   export -f SAMTOOLS_SINGLE
-  parallel \
+  parallel -j 1 \
     -a <(csvtk cut -f name $SAMPLES | csvtk del-header) \
     "SAMTOOLS_SINGLE"
 fi
