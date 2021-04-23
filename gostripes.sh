@@ -8,62 +8,72 @@
 ## module load sra-toolkit
 ## fasterq-dump -S -O seqs SRR10759419
 
-set -e
+set -euo pipefail
 
 ## Command line arguments.
 
-while [[ $# -gt 0 ]]; do
-  key=$1
-  case $key in
-    -s|--sample-sheet)
-      SAMPLES="$2"
-      shift 2
-      ;;
-    -a|--assembly)
-      ASSEMBLY="$2"
-      shift 2
-      ;;
-    -g|--annotation)
-      GTF="$2"
-      shift 2
-      ;;
-    -o|--out-dir)
-      WORKDIR="$2"
-      shift 2
-      ;;
-    -t|--threads)
-      CORES="$2"
-      shift 2
-      ;;
-    --paired)
-      PAIRED=true
-      shift
-      ;;
-    --genomeSAindexNbases)
-      GNB="$2"
-      shift 2
-      ;;
-    -m|--max-mem)
-      MAXMEM="$2"
-      shift 2
-      ;;
-  esac
-done
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    key=$1
+    case $key in
+      -s|--sample-sheet)
+        SAMPLES="$2"
+        shift 2
+        ;;
+      -a|--assembly)
+        ASSEMBLY="$2"
+        shift 2
+        ;;
+      -g|--annotation)
+        GTF="$2"
+        shift 2
+        ;;
+      -o|--out-dir)
+        WORKDIR="$2"
+        shift 2
+        ;;
+      -t|--threads)
+        CORES="$2"
+        shift 2
+        ;;
+      --paired)
+        PAIRED=true
+        shift
+        ;;
+      --genomeSAindexNbases)
+        GNB="$2"
+        shift 2
+        ;;
+      -m|--max-mem)
+        MAXMEM="$2"
+        shift 2
+        ;;
+    esac
+  done
+}
 
-if [[ -z ${WORKDIR+x} ]]; then WORKDIR=$(pwd); fi
-if [[ -z ${CORES+x} ]]; then CORES=1; fi
-if [[ -z ${GNB+x} ]]; then GNB=14; fi
-if [[ -z ${MAXMEM+x} ]]; then MAXMEM="768M"; fi
+# set defaults if unset from args
+set_defaults() { 
+  WORKDIR="${WORKDIR:-"$PWD"}"
+  CORES="${CORES:-1}"
+  GNB="${GNB:-14}"
+  MAXMEM="${MAXMEM:-768M}"
+}
 
-## Setup.
+load_libs() {
+  export CORES MAXMEM
+  SCRIPT_PATH="$(realpath ${BASH_SOURCE})"
+  SCRIPT_DIR="${SCRIPT_PATH%/*}"
+  for func in "${SCRIPT_DIR}/lib/"*.bash; do source "$func"; done
+}
 
-export CORES
-export MAXMEM
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-for func in ${SCRIPT_DIR}/bin/*sh; do source $func; done
+## MAIN
+parse_args
+set_defaults
+load_libs
 
-cd $WORKDIR
+cd "$WORKDIR"   # move to the output dir for rest of steps
 
 ## Preliminary fastq quality control.
 
