@@ -1,0 +1,21 @@
+#!/bin/bash
+# builds the gostripes-parallel conda environment
+
+# check that conda is installed / available
+>&2 echo -e '\n  checking for conda installation...'
+which conda > /dev/null \
+	|| type conda > /dev/null \
+	|| { >&2 echo -e '\n  conda not found - check install and PATH'; exit 1; }
+
+# make and build the env
+>&2 echo -e '  creating conda environment...'
+conda create -n gostripes \
+	-c conda-forge -c bioconda \
+	fastqc multiqc parallel seqtk \
+	star samtools cutadapt csvtk
+
+>&2 echo -e '  You can enter the conda envrironment via:\n'
+>&2 echo -e '  $ source activate gostripes || conda activate gostripes\n'
+>&2 echo -e '  (depending on your conda version)\n'
+
+exit 1

@@ -1,9 +1,5 @@
 #!/bin/bash
 
-## -- Conda Environment
-## conda create -n gostripes -c conda-forge -c bioconda \
-## fastqc multiqc parallel seqtk star samtools cutadapt csvtk
-
 ## -- GNU Parallel Note
 ## System PERL interefered with GNU parallel.
 ## module unload PERL
